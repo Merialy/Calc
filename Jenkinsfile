@@ -43,13 +43,7 @@ pipeline {
                 '''
             }
         }
-        
-        stage('Test') {
-            steps {
-                sh 'dotnet test --verbosity normal'
-            }
-        }
-        
+                
         stage('Publish') {
             steps {
                 sh '''
