@@ -9,36 +9,36 @@ pipeline {
         
         stage('Restore NuGet') {
             steps {
-                bat 'dotnet restore'  // Восстановление зависимостей
+                sh 'dotnet restore'  // Восстановление зависимостей
             }
         }
         
         stage('Build') {
             steps {
-                bat 'dotnet build --configuration Release'  // Сборка
+                sh 'dotnet build --configuration Release'  // Сборка
             }
         }
         
         stage('Test') {
             steps {
-                bat 'dotnet test'  // Запуск тестов
+                sh 'dotnet test'  // Запуск тестов
             }
         }
         
         stage('Publish') {
             steps {
-                bat 'dotnet publish --configuration Release --output ./publish'  // Публикация
+                sh 'dotnet publish --configuration Release --output ./publish'  // Публикация
             }
         }
     }
     
     post {
         always {
-            echo 'Pipeline завершен'  // Всегда выполняется
+            echo 'Pipeline завершен'
         }
         success {
             echo 'Успешно!'
-            archiveArtifacts artifacts: 'publish/**/*'  // Архивируем артефакты
+            archiveArtifacts artifacts: 'publish/**/*'
         }
         failure {
             echo 'Провал!'
