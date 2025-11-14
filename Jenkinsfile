@@ -1,33 +1,38 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'mcr.microsoft.com/dotnet/sdk:6.0'
+            args '-v /var/jenkins_home:/workspace'
+        }
+    }
     stages {
         stage('Checkout') {
             steps {
-                checkout scm  // Получение кода из Git
+                checkout scm
             }
         }
         
         stage('Restore NuGet') {
             steps {
-                sh 'dotnet restore'  // Восстановление зависимостей
+                sh 'dotnet restore'
             }
         }
         
         stage('Build') {
             steps {
-                sh 'dotnet build --configuration Release'  // Сборка
+                sh 'dotnet build --configuration Release --no-restore'
             }
         }
         
         stage('Test') {
             steps {
-                sh 'dotnet test'  // Запуск тестов
+                sh 'dotnet test --no-build --verbosity normal'
             }
         }
         
         stage('Publish') {
             steps {
-                sh 'dotnet publish --configuration Release --output ./publish'  // Публикация
+                sh 'dotnet publish --configuration Release --output ./publish --no-build'
             }
         }
     }
