@@ -1,10 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            image 'mcr.microsoft.com/dotnet/sdk:6.0'
-            args '-v /var/jenkins_home:/workspace'
-        }
+    agent any
+    
+    tools {
+        dotnetsdk 'dotnet-sdk-6.0' // если настроено в Global Tools
     }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -12,7 +12,16 @@ pipeline {
             }
         }
         
-        stage('Restore NuGet') {
+        stage('Setup .NET') {
+            steps {
+                script {
+                    // Проверка наличия .NET
+                    sh 'dotnet --version'
+                }
+            }
+        }
+        
+        stage('Restore') {
             steps {
                 sh 'dotnet restore'
             }
@@ -26,7 +35,20 @@ pipeline {
         
         stage('Test') {
             steps {
-                sh 'dotnet test --no-build --verbosity normal'
+                sh 'dotnet test --no-build --verbosity normal --logger "trx" --results-directory "TestResults"'
+            }
+            post {
+                always {
+                    // Публикация результатов тестов
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: false,
+                        keepAll: true,
+                        reportDir: 'TestResults',
+                        reportFiles: '*.html',
+                        reportName: 'Unit Test Report'
+                    ])
+                }
             }
         }
         
@@ -40,6 +62,7 @@ pipeline {
     post {
         always {
             echo 'Pipeline завершен'
+            cleanWs() // Очистка workspace
         }
         success {
             echo 'Успешно!'
