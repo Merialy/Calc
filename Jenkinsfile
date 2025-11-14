@@ -1,13 +1,22 @@
 pipeline {
-    agent {
-        docker {
-            image 'mcr.microsoft.com/dotnet/sdk:6.0'
-        }
-    }
+    agent any
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+        
+        stage('Verify .NET') {
+            steps {
+                script {
+                    // Проверяем, установлен ли .NET
+                    try {
+                        sh 'dotnet --version'
+                    } catch (Exception e) {
+                        error ".NET SDK не установлен на агенте. Установите .NET SDK 6.0 или выше."
+                    }
+                }
             }
         }
         
@@ -19,19 +28,19 @@ pipeline {
         
         stage('Build') {
             steps {
-                sh 'dotnet build --configuration Release --no-restore'
+                sh 'dotnet build --configuration Release'
             }
         }
         
         stage('Test') {
             steps {
-                sh 'dotnet test --no-build --verbosity normal'
+                sh 'dotnet test'
             }
         }
         
         stage('Publish') {
             steps {
-                sh 'dotnet publish --configuration Release --output ./publish --no-build'
+                sh 'dotnet publish --configuration Release --output ./publish'
             }
         }
     }
