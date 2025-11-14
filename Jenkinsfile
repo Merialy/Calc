@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'mcr.microsoft.com/dotnet/sdk:8.0-nanoserver-ltsc2022'
-            args '--platform windows'
-        }
-    }
+    agent any
     stages {
         stage('Checkout') {
             steps {
@@ -12,40 +7,59 @@ pipeline {
             }
         }
         
-        stage('Verify .NET') {
+        stage('Find Compatible Projects') {
             steps {
                 script {
-                    // Проверяем, установлен ли .NET
-                    try {
-                        sh 'dotnet --version'
-                    } catch (Exception e) {
-                        error ".NET SDK не установлен на агенте. Установите .NET SDK 6.0 или выше."
-                    }
+                    sh '''
+                    echo "=== Projects compatible with Linux ==="
+                    find . -name "*.csproj" ! -exec grep -q "net.*windows" {} \\; -print
+                    echo "=== Windows-specific projects (will be skipped) ==="
+                    find . -name "*.csproj" -exec grep -l "net.*windows" {} \\; || echo "None"
+                    '''
                 }
             }
         }
         
         stage('Restore NuGet') {
             steps {
-                sh 'dotnet restore'
+                sh '''
+                # Восстанавливаем только проекты без Windows target
+                for proj in $(find . -name "*.csproj" ! -exec grep -q "net.*windows" {} \\; -print); do
+                    echo "Restoring: $proj"
+                    dotnet restore "$proj"
+                done
+                '''
             }
         }
         
         stage('Build') {
             steps {
-                sh 'dotnet build --configuration Release'
+                sh '''
+                # Собираем только проекты без Windows target
+                for proj in $(find . -name "*.csproj" ! -exec grep -q "net.*windows" {} \\; -print); do
+                    echo "Building: $proj"
+                    dotnet build "$proj" --configuration Release --no-restore
+                done
+                '''
             }
         }
         
         stage('Test') {
             steps {
-                sh 'dotnet test'
+                sh 'dotnet test --verbosity normal'
             }
         }
         
         stage('Publish') {
             steps {
-                sh 'dotnet publish --configuration Release --output ./publish'
+                sh '''
+                # Публикуем только проекты без Windows target
+                mkdir -p ./publish
+                for proj in $(find . -name "*.csproj" ! -exec grep -q "net.*windows" {} \\; -print); do
+                    echo "Publishing: $proj"
+                    dotnet publish "$proj" --configuration Release --output ./publish --no-build
+                done
+                '''
             }
         }
     }
