@@ -69,5 +69,6 @@ pipeline {
         failure {
             echo 'Провал!'
         }
+        
     }
 }
